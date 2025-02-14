@@ -7,8 +7,8 @@ import torch.nn.functional as F
 import os
 
 # ハイパーパラメータ
-epochs = 10
-batch_size = 24
+epochs = 20  # 学習回数
+batch_size = 24  # バッチサイズ（GPUのメモリに依存）
 lr_g = 3e-4  # Generatorの学習率
 lr_d = 1e-7  # Discriminatorの学習率
 
@@ -31,7 +31,7 @@ criterion = torch.nn.MSELoss()  # Adversarial Loss
 start_epoch = 1  # デフォルトは1から開始
 
 # もしチェックポイントファイルが存在すれば、読み込む
-checkpoint_path = "checkpoint.pth"
+checkpoint_path = "checkpoint/checkpoint.pth"
 if os.path.exists(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     generator.load_state_dict(checkpoint["generator_state_dict"])
@@ -83,16 +83,16 @@ for epoch in range(start_epoch, epochs + 1):
     
     # 5エポックごとにモデルを保存
     if epoch % 5 == 0:
-        torch.save(generator.state_dict(), f"generator_epoch_{epoch}.pth")
-        torch.save(discriminator.state_dict(), f"discriminator_epoch_{epoch}.pth")
+        torch.save(generator.state_dict(), f"generator/generator_epoch_{epoch}.pth")
+        torch.save(discriminator.state_dict(), f"discriminator/discriminator_epoch_{epoch}.pth")
         torch.save({
             "epoch": epoch,
             "generator_state_dict": generator.state_dict(),
             "discriminator_state_dict": discriminator.state_dict(),
             "optimizer_g_state_dict": optim_g.state_dict(),
             "optimizer_d_state_dict": optim_d.state_dict(),
-        }, "checkpoint.pth")
+        }, "checkpoint/checkpoint.pth")
         print(f"💾 チェックポイントを保存しました（Epoch {epoch}）")
 
-torch.save(generator.state_dict(), f"generator_final.pth")
-torch.save(discriminator.state_dict(), f"discriminator_final.pth")
+torch.save(generator.state_dict(), f"generator/generator_final.pth")
+torch.save(discriminator.state_dict(), f"discriminator/discriminator_final.pth")
