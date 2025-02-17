@@ -3,17 +3,24 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from dataset import SuperResolutionDataset
 from model import Generator, Discriminator
-import torch.nn.functional as F
 import os
+import torchvision.transforms as transforms
 
 # ハイパーパラメータ
-epochs = 20  # 学習回数
+epochs = 680  # 学習回数
 batch_size = 24  # バッチサイズ（GPUのメモリに依存）
-lr_g = 3e-4  # Generatorの学習率
-lr_d = 1e-7  # Discriminatorの学習率
+lr_g = 1e-4  # Generatorの学習率
+lr_d = 1e-8  # Discriminatorの学習率
+
+# データ拡張の定義（ランダム反転）
+transform = transforms.Compose([
+    transforms.RandomHorizontalFlip(),  # ランダムに水平反転
+    transforms.RandomVerticalFlip(),    # ランダムに垂直反転
+    transforms.ToTensor(),              # テンソルに変換
+])
 
 # データセットの作成
-dataset = SuperResolutionDataset(low_res_dir="data/low", high_res_dir="data/high")
+dataset = SuperResolutionDataset(low_res_dir="data/low", high_res_dir="data/high", transform=transform)
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # モデルのインスタンス化
@@ -49,6 +56,10 @@ for epoch in range(start_epoch, epochs + 1):
         # データをGPUに送る
         lr, hr = lr.cuda(), hr.cuda()
 
+        # ノイズを加える
+        noise = torch.randn_like(lr) * 0.1  # 0.1倍のノイズ
+        lr_noisy = lr + noise  # 低解像度画像にノイズを加える
+
         # -----------------
         # Discriminatorの訓練
         # -----------------
@@ -56,7 +67,7 @@ for epoch in range(start_epoch, epochs + 1):
 
         # 本物の画像と生成された画像
         real_output = discriminator(hr)
-        fake_hr = generator(lr)
+        fake_hr = generator(lr_noisy)
         fake_output = discriminator(fake_hr.detach())  # 学習をバックプロパゲーションしない
 
         # 本物と偽物の判定損失
@@ -78,13 +89,15 @@ for epoch in range(start_epoch, epochs + 1):
         g_loss.backward()
         optim_g.step()
 
-        if batch_idx % 100 == 0:
+        if batch_idx % 10 == 0:
             print(f"Epoch [{epoch}/{epochs}], Step [{batch_idx}/{len(dataloader)}], D Loss: {d_loss.item()}, G Loss: {g_loss.item()}")
     
     # 5エポックごとにモデルを保存
     if epoch % 5 == 0:
         torch.save(generator.state_dict(), f"generator/generator_epoch_{epoch}.pth")
         torch.save(discriminator.state_dict(), f"discriminator/discriminator_epoch_{epoch}.pth")
+        torch.save(generator.state_dict(), f"generator/generator_final.pth")
+        torch.save(discriminator.state_dict(), f"discriminator/discriminator_final.pth")
         torch.save({
             "epoch": epoch,
             "generator_state_dict": generator.state_dict(),
@@ -94,5 +107,3 @@ for epoch in range(start_epoch, epochs + 1):
         }, "checkpoint/checkpoint.pth")
         print(f"💾 チェックポイントを保存しました（Epoch {epoch}）")
 
-torch.save(generator.state_dict(), f"generator/generator_final.pth")
-torch.save(discriminator.state_dict(), f"discriminator/discriminator_final.pth")
