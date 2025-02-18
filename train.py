@@ -7,10 +7,10 @@ import os
 import torchvision.transforms as transforms
 
 # ハイパーパラメータ
-epochs = 680  # 学習回数
-batch_size = 24  # バッチサイズ（GPUのメモリに依存）
+epochs = 10  # 学習回数
+batch_size = 28  # バッチサイズ（GPUのメモリに依存）
 lr_g = 1e-4  # Generatorの学習率
-lr_d = 1e-8  # Discriminatorの学習率
+lr_d = 1e-6  # Discriminatorの学習率
 
 # データ拡張の定義（ランダム反転）
 transform = transforms.Compose([
@@ -56,9 +56,22 @@ for epoch in range(start_epoch, epochs + 1):
         # データをGPUに送る
         lr, hr = lr.cuda(), hr.cuda()
 
-        # ノイズを加える
-        noise = torch.randn_like(lr) * 0.1  # 0.1倍のノイズ
-        lr_noisy = lr + noise  # 低解像度画像にノイズを加える
+        # # ノイズを加える
+        # noise = torch.randn_like(lr) * 0.1  # 0.1倍のノイズ
+        # lr_noisy = lr + noise  # 低解像度画像にノイズを加える
+
+        # 元画像の最小値と最大値を計算
+        lr_min, lr_max = lr.min(), lr.max()
+
+        # ノイズ強度を動的に調整（画像範囲に合わせて）
+        noise_strength = 0.1 * (1.0 - (lr_max - lr_min))  # 範囲に応じたノイズ強度調整
+
+        # ガウスノイズを加え、最大値を超えないように調整
+        noise = torch.randn_like(lr) * noise_strength
+        lr_noisy = lr + noise
+
+        # クリッピングしないで、最小値と最大値を元に戻す
+        lr_noisy = torch.clamp(lr_noisy, 0.0, 1.0)
 
         # -----------------
         # Discriminatorの訓練

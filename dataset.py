@@ -11,8 +11,8 @@ class SuperResolutionDataset(Dataset):
         低画質（LR）と高画質（HR）の画像をペアで読み込むデータセット
 
         Args:
-            low_res_dir (str): 低画質画像のフォルダパス（360p）
-            high_res_dir (str): 高画質画像のフォルダパス（1080p）
+            low_res_dir (str): 低画質画像のフォルダパス
+            high_res_dir (str): 高画質画像のフォルダパス
             transform (callable, optional): 入力画像に適用する変換（反転など）
         """
         self.low_res_images = sorted(glob(os.path.join(low_res_dir, "*.*")))
