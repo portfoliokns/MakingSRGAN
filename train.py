@@ -7,7 +7,7 @@ import os
 import torchvision.transforms as transforms
 
 # ハイパーパラメータ
-epochs = 10  # 学習回数
+epochs = 30  # 学習回数
 batch_size = 28  # バッチサイズ（GPUのメモリに依存）
 lr_g = 1e-4  # Generatorの学習率
 lr_d = 1e-6  # Discriminatorの学習率

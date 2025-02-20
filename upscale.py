@@ -9,7 +9,7 @@ generator.load_state_dict(torch.load("generator/generator_final.pth"))
 generator.eval()  # 評価モードに設定
 
 # 画像を読み込む
-num = 2
+num = 5
 image = Image.open("w_test" + str(num) +".png")  # テスト用低解像度画像を指定
 
 # RGBA → RGBに変換（もし画像がRGBAであれば）
