@@ -7,20 +7,27 @@ import os
 import torchvision.transforms as transforms
 
 # ハイパーパラメータ
-epochs = 30  # 学習回数
-batch_size = 28  # バッチサイズ（GPUのメモリに依存）
-lr_g = 1e-4  # Generatorの学習率
+epochs = 10  # 学習回数
+batch_size = 24  # バッチサイズ（GPUのメモリに依存）
+lr_g = 2e-4  # Generatorの学習率
 lr_d = 1e-6  # Discriminatorの学習率
 
-# データ拡張の定義（ランダム反転）
+# データ拡張の定義（ランダム反転/回転）
 transform = transforms.Compose([
     transforms.RandomHorizontalFlip(),  # ランダムに水平反転
     transforms.RandomVerticalFlip(),    # ランダムに垂直反転
+    transforms.RandomChoice([
+        transforms.RandomRotation(0),   # 0度（回転なし）
+        transforms.RandomRotation(90),  # 90度
+        transforms.RandomRotation(180), # 180度
+        transforms.RandomRotation(270), # 270度
+    ]),  # ランダムに回転
     transforms.ToTensor(),              # テンソルに変換
 ])
 
 # データセットの作成
-dataset = SuperResolutionDataset(low_res_dir="data/low", high_res_dir="data/high", transform=transform)
+# dataset = SuperResolutionDataset(low_res_dir="data/test_low", high_res_dir="data/test_high", transform=transform)
+dataset = SuperResolutionDataset(low_res_dir="data/train_low", high_res_dir="data/train_high", transform=transform)
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # モデルのインスタンス化
@@ -43,8 +50,6 @@ if os.path.exists(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     generator.load_state_dict(checkpoint["generator_state_dict"])
     discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
-    optim_g.load_state_dict(checkpoint["optimizer_g_state_dict"])
-    optim_d.load_state_dict(checkpoint["optimizer_d_state_dict"])
     start_epoch = checkpoint["epoch"] + 1  # 次のエポックから開始
     print(f"✅ 学習を {start_epoch} エポック目から再開します。")
 else:
@@ -56,10 +61,7 @@ for epoch in range(start_epoch, epochs + 1):
         # データをGPUに送る
         lr, hr = lr.cuda(), hr.cuda()
 
-        # # ノイズを加える
-        # noise = torch.randn_like(lr) * 0.1  # 0.1倍のノイズ
-        # lr_noisy = lr + noise  # 低解像度画像にノイズを加える
-
+        #ノイズを加える
         # 元画像の最小値と最大値を計算
         lr_min, lr_max = lr.min(), lr.max()
 
@@ -102,11 +104,12 @@ for epoch in range(start_epoch, epochs + 1):
         g_loss.backward()
         optim_g.step()
 
+        # ログの表記
         if batch_idx % 10 == 0:
             print(f"Epoch [{epoch}/{epochs}], Step [{batch_idx}/{len(dataloader)}], D Loss: {d_loss.item()}, G Loss: {g_loss.item()}")
     
-    # 5エポックごとにモデルを保存
-    if epoch % 5 == 0:
+    # nエポックごとにモデルを保存(状況に応じてn>0を設定してください)
+    if epoch % 1 == 0:
         torch.save(generator.state_dict(), f"generator/generator_epoch_{epoch}.pth")
         torch.save(discriminator.state_dict(), f"discriminator/discriminator_epoch_{epoch}.pth")
         torch.save(generator.state_dict(), f"generator/generator_final.pth")
@@ -115,8 +118,6 @@ for epoch in range(start_epoch, epochs + 1):
             "epoch": epoch,
             "generator_state_dict": generator.state_dict(),
             "discriminator_state_dict": discriminator.state_dict(),
-            "optimizer_g_state_dict": optim_g.state_dict(),
-            "optimizer_d_state_dict": optim_d.state_dict(),
         }, "checkpoint/checkpoint.pth")
         print(f"💾 チェックポイントを保存しました（Epoch {epoch}）")
 

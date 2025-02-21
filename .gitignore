@@ -1,4 +1,5 @@
 data/*/*.png
+data/*/*.JPEG
 venv
 __pycache__
 *.pth
