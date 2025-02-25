@@ -19,11 +19,11 @@ class SuperResolutionDataset(Dataset):
         self.high_res_images = sorted(glob(os.path.join(high_res_dir, "*.*")))
 
         self.transform_lr = transforms.Compose([
-            transforms.Resize((128, 128)),  # 360p → 128×128 にリサイズ
+            transforms.Resize((256, 256)),
         ])
 
         self.transform_hr = transforms.Compose([
-            transforms.Resize((512, 512)),  # 1080p → 512×512 にリサイズ
+            transforms.Resize((512, 512)),
         ])
 
         self.transform = transform  # 引数で渡されたtransformを保存
@@ -37,8 +37,8 @@ class SuperResolutionDataset(Dataset):
         hr_image = Image.open(self.high_res_images[idx]).convert("RGB")
 
         if self.transform:
-            lr_image = self.transform(lr_image)  # 低解像度画像にtransformを適用(反転)
-            hr_image = self.transform(hr_image)  # 高解像度画像にtransformを適用(反転)
+            lr_image = self.transform(lr_image)  # 低解像度画像にtransformを適用(反転など)
+            hr_image = self.transform(hr_image)  # 高解像度画像にtransformを適用(反転など)
 
         lr_image = self.transform_lr(lr_image)
         hr_image = self.transform_hr(hr_image)

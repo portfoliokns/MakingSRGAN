@@ -9,19 +9,20 @@ import torchvision.transforms as transforms
 # ハイパーパラメータ
 epochs = 10  # 学習回数
 batch_size = 26  # バッチサイズ（GPUのメモリに依存）
-lr_g = 1.5e-4  # Generatorの学習率
-lr_d = 1e-7  # Discriminatorの学習率
+lr_g = 1e-4  # Generatorの学習率
+lr_d = 1e-6  # Discriminatorの学習率
 
 # データ拡張の定義（ランダム反転/回転）
 transform = transforms.Compose([
     transforms.RandomHorizontalFlip(),  # ランダムに水平反転
     transforms.RandomVerticalFlip(),    # ランダムに垂直反転
     transforms.RandomChoice([
-        transforms.RandomRotation(0),   # 0度（回転なし）
-        transforms.RandomRotation(90),  # 90度
-        transforms.RandomRotation(180), # 180度
-        transforms.RandomRotation(270), # 270度
+        transforms.RandomRotation(0, expand=True),   # 0度（回転なし）
+        transforms.RandomRotation(90, expand=True),  # 90度
+        transforms.RandomRotation(180, expand=True), # 180度
+        transforms.RandomRotation(270, expand=True), # 270度
     ]),  # ランダムに回転
+    transforms.RandomResizedCrop(512, scale=(0.8, 1.0)),
     transforms.ToTensor(),              # テンソルに変換
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  #画像ピクセルの正規化
 ])
@@ -62,7 +63,9 @@ for epoch in range(start_epoch, epochs + 1):
         # データをGPUに送る
         lr, hr = lr.cuda(), hr.cuda()
 
-        #ノイズを加える
+        # -----------------
+        # 低画質画像へのノイズ付与
+        # -----------------
         # 元画像の最小値と最大値を計算
         lr_min, lr_max = lr.min(), lr.max()
 
@@ -100,7 +103,7 @@ for epoch in range(start_epoch, epochs + 1):
 
         # Generatorの出力をDiscriminatorに通して、損失を計算
         fake_output = discriminator(fake_hr)
-        g_loss = criterion(fake_output, torch.ones_like(fake_output))  # 本物と認識させる
+        g_loss = criterion(fake_output, torch.ones_like(fake_output))
 
         g_loss.backward()
         optim_g.step()
