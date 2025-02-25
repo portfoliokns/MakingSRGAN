@@ -8,9 +8,9 @@ import torchvision.transforms as transforms
 
 # ハイパーパラメータ
 epochs = 10  # 学習回数
-batch_size = 24  # バッチサイズ（GPUのメモリに依存）
-lr_g = 2e-4  # Generatorの学習率
-lr_d = 1e-6  # Discriminatorの学習率
+batch_size = 26  # バッチサイズ（GPUのメモリに依存）
+lr_g = 1.5e-4  # Generatorの学習率
+lr_d = 1e-7  # Discriminatorの学習率
 
 # データ拡張の定義（ランダム反転/回転）
 transform = transforms.Compose([
@@ -23,6 +23,7 @@ transform = transforms.Compose([
         transforms.RandomRotation(270), # 270度
     ]),  # ランダムに回転
     transforms.ToTensor(),              # テンソルに変換
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  #画像ピクセルの正規化
 ])
 
 # データセットの作成
