@@ -4,6 +4,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
+import random
 
 class SuperResolutionDataset(Dataset):
     def __init__(self, low_res_dir, high_res_dir, transform=None):
@@ -36,11 +37,37 @@ class SuperResolutionDataset(Dataset):
         lr_image = Image.open(self.low_res_images[idx]).convert("RGB")
         hr_image = Image.open(self.high_res_images[idx]).convert("RGB")
 
-        if self.transform:
-            lr_image = self.transform(lr_image)  # 低解像度画像にtransformを適用(反転など)
-            hr_image = self.transform(hr_image)  # 高解像度画像にtransformを適用(反転など)
+        lr_image, hr_image = self.transform(lr_image, hr_image)
 
         lr_image = self.transform_lr(lr_image)
         hr_image = self.transform_hr(hr_image)
+
+        return lr_image, hr_image
+    
+class PairedTransform:
+    def __init__(self):
+        self.base_transform = transforms.Compose([
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomChoice([
+                transforms.Lambda(lambda img: img.rotate(0)),
+                transforms.Lambda(lambda img: img.rotate(90, expand=True)),
+                transforms.Lambda(lambda img: img.rotate(180)),
+                transforms.Lambda(lambda img: img.rotate(270, expand=True)),
+            ]),
+            transforms.RandomResizedCrop(512, scale=(0.8, 1.0)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        ])
+
+    def __call__(self, lr_image, hr_image):
+        seed = random.randint(0, 99999)  # 乱数のシードを固定
+        random.seed(seed)
+        torch.manual_seed(seed)
+        lr_image = self.base_transform(lr_image)
+
+        random.seed(seed)
+        torch.manual_seed(seed)
+        hr_image = self.base_transform(hr_image)
 
         return lr_image, hr_image

@@ -3,7 +3,7 @@ from glob import glob
 from PIL import Image
 import shutil
 
-input_folder = "C:/Users/ransu/Downloads/train/n03160309"
+input_folder = "C:/Users/ransu/Downloads/train/n01776313"
 output_folder_low = "data/train_low"
 output_folder_high = "data/train_high"
 

@@ -1,34 +1,20 @@
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from dataset import SuperResolutionDataset
+from dataset import PairedTransform, SuperResolutionDataset
 from model import Generator, Discriminator
 import os
-import torchvision.transforms as transforms
+from torchvision.utils import save_image
 
 # ハイパーパラメータ
-epochs = 10  # 学習回数
+epochs = 8  # 学習回数
 batch_size = 26  # バッチサイズ（GPUのメモリに依存）
-lr_g = 1e-4  # Generatorの学習率
+lr_g = 1.3e-4  # Generatorの学習率
 lr_d = 1e-6  # Discriminatorの学習率
-
-# データ拡張の定義（ランダム反転/回転）
-transform = transforms.Compose([
-    transforms.RandomHorizontalFlip(),  # ランダムに水平反転
-    transforms.RandomVerticalFlip(),    # ランダムに垂直反転
-    transforms.RandomChoice([
-        transforms.RandomRotation(0, expand=True),   # 0度（回転なし）
-        transforms.RandomRotation(90, expand=True),  # 90度
-        transforms.RandomRotation(180, expand=True), # 180度
-        transforms.RandomRotation(270, expand=True), # 270度
-    ]),  # ランダムに回転
-    transforms.RandomResizedCrop(512, scale=(0.8, 1.0)),
-    transforms.ToTensor(),              # テンソルに変換
-    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  #画像ピクセルの正規化
-])
 
 # データセットの作成
 # dataset = SuperResolutionDataset(low_res_dir="data/test_low", high_res_dir="data/test_high", transform=transform)
+transform = PairedTransform()
 dataset = SuperResolutionDataset(low_res_dir="data/train_low", high_res_dir="data/train_high", transform=transform)
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
@@ -70,14 +56,11 @@ for epoch in range(start_epoch, epochs + 1):
         lr_min, lr_max = lr.min(), lr.max()
 
         # ノイズ強度を動的に調整（画像範囲に合わせて）
-        noise_strength = 0.1 * (1.0 - (lr_max - lr_min))  # 範囲に応じたノイズ強度調整
+        noise_strength = 0.05 * (1.0 - (lr_max - lr_min))  # 範囲に応じたノイズ強度調整
 
         # ガウスノイズを加え、最大値を超えないように調整
         noise = torch.randn_like(lr) * noise_strength
         lr_noisy = lr + noise
-
-        # クリッピングしないで、最小値と最大値を元に戻す
-        lr_noisy = torch.clamp(lr_noisy, 0.0, 1.0)
 
         # -----------------
         # Discriminatorの訓練
@@ -89,6 +72,11 @@ for epoch in range(start_epoch, epochs + 1):
         fake_hr = generator(lr_noisy)
         fake_output = discriminator(fake_hr.detach())  # 学習をバックプロパゲーションしない
 
+        save_image(lr, f"real_low_images/batch_{batch_idx}.png", normalize=True)
+        save_image(lr_noisy, f"real_noisy_images/batch_{batch_idx}.png", normalize=True)
+        save_image(fake_hr, f"fake_images/batch_{batch_idx}.png", normalize=True)
+        save_image(hr, f"real_images/batch_{batch_idx}.png", normalize=True)
+        
         # 本物と偽物の判定損失
         real_loss = criterion(real_output, torch.ones_like(real_output))
         fake_loss = criterion(fake_output, torch.zeros_like(fake_output))
@@ -109,7 +97,7 @@ for epoch in range(start_epoch, epochs + 1):
         optim_g.step()
 
         # ログの表記
-        if batch_idx % 10 == 0:
+        if batch_idx % 2 == 0:
             print(f"Epoch [{epoch}/{epochs}], Step [{batch_idx}/{len(dataloader)}], D Loss: {d_loss.item()}, G Loss: {g_loss.item()}")
     
     # nエポックごとにモデルを保存(状況に応じてn>0を設定してください)
@@ -118,6 +106,11 @@ for epoch in range(start_epoch, epochs + 1):
         torch.save(discriminator.state_dict(), f"discriminator/discriminator_epoch_{epoch}.pth")
         torch.save(generator.state_dict(), f"generator/generator_final.pth")
         torch.save(discriminator.state_dict(), f"discriminator/discriminator_final.pth")
+        torch.save({
+            "epoch": epoch,
+            "generator_state_dict": generator.state_dict(),
+            "discriminator_state_dict": discriminator.state_dict(),
+        }, f"checkpoint/checkpoint_epoch_{epoch}.pth")
         torch.save({
             "epoch": epoch,
             "generator_state_dict": generator.state_dict(),
