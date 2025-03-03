@@ -55,7 +55,7 @@ class PairedTransform:
                 transforms.Lambda(lambda img: img.rotate(180)),
                 transforms.Lambda(lambda img: img.rotate(270, expand=True)),
             ]),
-            transforms.RandomResizedCrop(512, scale=(0.8, 1.0)),
+            transforms.RandomResizedCrop(512, scale=(0.5, 1.0)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
         ])

@@ -5,15 +5,16 @@ from dataset import PairedTransform, SuperResolutionDataset
 from model import Generator, Discriminator
 import os
 from torchvision.utils import save_image
+from upscaler import Upscaler
 
 # ハイパーパラメータ
-epochs = 8  # 学習回数
-batch_size = 26  # バッチサイズ（GPUのメモリに依存）
-lr_g = 1.3e-4  # Generatorの学習率
-lr_d = 1e-6  # Discriminatorの学習率
-
+epochs = 5  # 学習回数
+batch_size = 20  # バッチサイズ（GPUのメモリに依存）
+lr_g = 1.0e-5  # Generatorの学習率
+lr_d = 2.0e-7  # Discriminatorの学習率
+noise_param = 0.08
+ 
 # データセットの作成
-# dataset = SuperResolutionDataset(low_res_dir="data/test_low", high_res_dir="data/test_high", transform=transform)
 transform = PairedTransform()
 dataset = SuperResolutionDataset(low_res_dir="data/train_low", high_res_dir="data/train_high", transform=transform)
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -27,10 +28,14 @@ optim_g = optim.Adam(generator.parameters(), lr=lr_g, betas=(0.9, 0.999))
 optim_d = optim.Adam(discriminator.parameters(), lr=lr_d, betas=(0.9, 0.999))
 
 # 損失関数
-criterion = torch.nn.MSELoss()  # Adversarial Loss
+# criterion = torch.nn.MSELoss()  # Adversarial Loss
+criterion = torch.nn.BCEWithLogitsLoss() 
 
 # 途中から再開するための変数
 start_epoch = 1  # デフォルトは1から開始
+
+# アップスケーラー
+upscaler = Upscaler()
 
 # もしチェックポイントファイルが存在すれば、読み込む
 checkpoint_path = "checkpoint/checkpoint.pth"
@@ -56,7 +61,7 @@ for epoch in range(start_epoch, epochs + 1):
         lr_min, lr_max = lr.min(), lr.max()
 
         # ノイズ強度を動的に調整（画像範囲に合わせて）
-        noise_strength = 0.05 * (1.0 - (lr_max - lr_min))  # 範囲に応じたノイズ強度調整
+        noise_strength = noise_param * (1.0 - (lr_max - lr_min))  # 範囲に応じたノイズ強度調整
 
         # ガウスノイズを加え、最大値を超えないように調整
         noise = torch.randn_like(lr) * noise_strength
@@ -71,11 +76,6 @@ for epoch in range(start_epoch, epochs + 1):
         real_output = discriminator(hr)
         fake_hr = generator(lr_noisy)
         fake_output = discriminator(fake_hr.detach())  # 学習をバックプロパゲーションしない
-
-        save_image(lr, f"real_low_images/batch_{batch_idx}.png", normalize=True)
-        save_image(lr_noisy, f"real_noisy_images/batch_{batch_idx}.png", normalize=True)
-        save_image(fake_hr, f"fake_images/batch_{batch_idx}.png", normalize=True)
-        save_image(hr, f"real_images/batch_{batch_idx}.png", normalize=True)
         
         # 本物と偽物の判定損失
         real_loss = criterion(real_output, torch.ones_like(real_output))
@@ -96,16 +96,26 @@ for epoch in range(start_epoch, epochs + 1):
         g_loss.backward()
         optim_g.step()
 
+        save_image(lr, f"real_low_images/batch_{batch_idx}.png", normalize=True)
+        save_image(lr_noisy, f"real_noisy_images/batch_{batch_idx}.png", normalize=True)
+        save_image(fake_hr, f"fake_images/batch_{batch_idx}.png", normalize=True)
+        save_image(hr, f"real_images/batch_{batch_idx}.png", normalize=True)
+
         # ログの表記
         if batch_idx % 2 == 0:
             print(f"Epoch [{epoch}/{epochs}], Step [{batch_idx}/{len(dataloader)}], D Loss: {d_loss.item()}, G Loss: {g_loss.item()}")
+
+        # キャッシュ
+        if batch_idx % 2 == 0:
+            torch.save(generator.state_dict(), f"tmp_generator/generator_batch_{batch_idx}.pth")
+            upscaler.upscale(batch_idx)
+
     
     # nエポックごとにモデルを保存(状況に応じてn>0を設定してください)
     if epoch % 1 == 0:
         torch.save(generator.state_dict(), f"generator/generator_epoch_{epoch}.pth")
         torch.save(discriminator.state_dict(), f"discriminator/discriminator_epoch_{epoch}.pth")
         torch.save(generator.state_dict(), f"generator/generator_final.pth")
-        torch.save(discriminator.state_dict(), f"discriminator/discriminator_final.pth")
         torch.save({
             "epoch": epoch,
             "generator_state_dict": generator.state_dict(),
