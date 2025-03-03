@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -6,15 +5,13 @@ class Generator(nn.Module):
     def __init__(self, input_channels=3):
         super(Generator, self).__init__()
 
-        # 残差ブロック（Residual Blocks）
+        # 残差ブロック
         self.block1 = self.make_block(input_channels, 64, 9)   # 入力 3チャンネル（RGB）→ 64チャンネル
         self.block2 = self.make_block(64, 64, 3)
         self.block3 = self.make_block(64, 64, 3)
         self.block4 = self.make_block(64, 64, 3)
 
-        # アップサンプリング層を追加
-        # self.upconv1 = nn.ConvTranspose2d(64, 64, kernel_size=4, stride=2, padding=1, output_padding=0)
-        # self.upconv2 = nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1, output_padding=0)
+        # アップサンプリング層
         self.upconv1 = nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1, output_padding=0)
     
     def make_block(self, in_channels, out_channels, kernel_size):
@@ -33,10 +30,7 @@ class Generator(nn.Module):
 
         # アップサンプリングを行う
         x = self.upconv1(x)  # サイズが2倍になる
-        # x = self.upconv2(x)  # サイズが2倍になる
-
         return x
-
 
 class Discriminator(nn.Module):
     def __init__(self, input_channels=3, img_size=512):
