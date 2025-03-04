@@ -3,7 +3,7 @@ from glob import glob
 from PIL import Image
 import shutil
 
-input_folder = "C:/Users/ransu/Downloads/train/n02504013"
+input_folder = "C:/Users/ransu/Downloads/train/old3"
 output_folder_low = "data/train_low"
 output_folder_high = "data/train_high"
 
@@ -16,9 +16,9 @@ for image_path in image_files:
     try:
         with Image.open(image_path) as img:
             width, height = img.size
-            if width >= 512 and height >= 512:
+            if width >= 1024 and height >= 1024:
                 new_size = (width // 2, height // 2)
-                img_resized = img.resize(new_size)
+                img_resized = img.resize(new_size, Image.BICUBIC)
 
                 filename = os.path.basename(image_path)
                 save_path_low = os.path.join(output_folder_low, filename)

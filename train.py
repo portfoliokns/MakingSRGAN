@@ -8,11 +8,10 @@ from torchvision.utils import save_image
 from upscaler import Upscaler
 
 # ハイパーパラメータ
-epochs = 5  # 学習回数
+epochs = 4  # 学習回数
 batch_size = 20  # バッチサイズ（GPUのメモリに依存）
 lr_g = 1.0e-5  # Generatorの学習率
-lr_d = 2.0e-7  # Discriminatorの学習率
-noise_param = 0.08
+lr_d = 1.0e-7  # Discriminatorの学習率
  
 # データセットの作成
 transform = PairedTransform()
@@ -28,7 +27,6 @@ optim_g = optim.Adam(generator.parameters(), lr=lr_g, betas=(0.9, 0.999))
 optim_d = optim.Adam(discriminator.parameters(), lr=lr_d, betas=(0.9, 0.999))
 
 # 損失関数
-# criterion = torch.nn.MSELoss()  # Adversarial Loss
 criterion = torch.nn.BCEWithLogitsLoss() 
 
 # 途中から再開するための変数
@@ -55,26 +53,13 @@ for epoch in range(start_epoch, epochs + 1):
         lr, hr = lr.cuda(), hr.cuda()
 
         # -----------------
-        # 低画質画像へのノイズ付与
-        # -----------------
-        # 元画像の最小値と最大値を計算
-        lr_min, lr_max = lr.min(), lr.max()
-
-        # ノイズ強度を動的に調整（画像範囲に合わせて）
-        noise_strength = noise_param * (1.0 - (lr_max - lr_min))  # 範囲に応じたノイズ強度調整
-
-        # ガウスノイズを加え、最大値を超えないように調整
-        noise = torch.randn_like(lr) * noise_strength
-        lr_noisy = lr + noise
-
-        # -----------------
         # Discriminatorの訓練
         # -----------------
         optim_d.zero_grad()
 
         # 本物の画像と生成された画像
         real_output = discriminator(hr)
-        fake_hr = generator(lr_noisy)
+        fake_hr = generator(lr)
         fake_output = discriminator(fake_hr.detach())  # 学習をバックプロパゲーションしない
         
         # 本物と偽物の判定損失
@@ -97,13 +82,12 @@ for epoch in range(start_epoch, epochs + 1):
         optim_g.step()
 
         save_image(lr, f"real_low_images/batch_{batch_idx}.png", normalize=True)
-        save_image(lr_noisy, f"real_noisy_images/batch_{batch_idx}.png", normalize=True)
         save_image(fake_hr, f"fake_images/batch_{batch_idx}.png", normalize=True)
         save_image(hr, f"real_images/batch_{batch_idx}.png", normalize=True)
 
         # ログの表記
         if batch_idx % 2 == 0:
-            print(f"Epoch [{epoch}/{epochs}], Step [{batch_idx}/{len(dataloader)}], D Loss: {d_loss.item()}, G Loss: {g_loss.item()}")
+            print(f"{epoch},{batch_idx + 1},{d_loss.item()},{g_loss.item()}")
 
         # キャッシュ
         if batch_idx % 2 == 0:
@@ -113,9 +97,6 @@ for epoch in range(start_epoch, epochs + 1):
     
     # nエポックごとにモデルを保存(状況に応じてn>0を設定してください)
     if epoch % 1 == 0:
-        torch.save(generator.state_dict(), f"generator/generator_epoch_{epoch}.pth")
-        torch.save(discriminator.state_dict(), f"discriminator/discriminator_epoch_{epoch}.pth")
-        torch.save(generator.state_dict(), f"generator/generator_final.pth")
         torch.save({
             "epoch": epoch,
             "generator_state_dict": generator.state_dict(),
@@ -127,4 +108,3 @@ for epoch in range(start_epoch, epochs + 1):
             "discriminator_state_dict": discriminator.state_dict(),
         }, "checkpoint/checkpoint.pth")
         print(f"💾 チェックポイントを保存しました（Epoch {epoch}）")
-

@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import random
+import torchvision.transforms.functional as F
 
 class SuperResolutionDataset(Dataset):
     def __init__(self, low_res_dir, high_res_dir, transform=None):
@@ -45,7 +46,8 @@ class SuperResolutionDataset(Dataset):
         return lr_image, hr_image
     
 class PairedTransform:
-    def __init__(self):
+    def __init__(self, crop_size=256):
+        self.crop_size = crop_size
         self.base_transform = transforms.Compose([
             transforms.RandomVerticalFlip(p=0.5),
             transforms.RandomHorizontalFlip(p=0.5),
@@ -55,13 +57,21 @@ class PairedTransform:
                 transforms.Lambda(lambda img: img.rotate(180)),
                 transforms.Lambda(lambda img: img.rotate(270, expand=True)),
             ]),
-            transforms.RandomResizedCrop(512, scale=(0.5, 1.0)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
         ])
 
     def __call__(self, lr_image, hr_image):
+
         seed = random.randint(0, 99999)  # 乱数のシードを固定
+
+        # # ランダムクロップのパラメータを取得
+        i, j, h, w = transforms.RandomCrop.get_params(lr_image, output_size=(self.crop_size, self.crop_size))
+
+        # クロップを同じ位置で両方の画像に適用
+        hr_image = F.crop(hr_image, i * 2, j * 2, h * 2, w * 2)
+        lr_image = F.crop(lr_image, i, j, h, w)
+
         random.seed(seed)
         torch.manual_seed(seed)
         lr_image = self.base_transform(lr_image)

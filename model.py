@@ -67,5 +67,3 @@ class Discriminator(nn.Module):
         x = x.view(x.size(0), -1)  # x.size(0) はバッチサイズ
         x = self.fc(x)
         return x
-
-

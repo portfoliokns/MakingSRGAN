@@ -5,11 +5,11 @@ import torchvision.transforms as transforms
 
 # 学習済みモデルの読み込み
 generator = Generator().cuda()
-generator.load_state_dict(torch.load("tmp_generator/generator_batch_134.pth", weights_only=True))
+generator.load_state_dict(torch.load("tmp_generator/generator_batch_520.pth", weights_only=True))
 generator.eval()  # 評価モードに設定
 
 # 画像を読み込む
-num = 6
+num = 2
 image = Image.open("w_test" + str(num) +".png")  # テスト用低解像度画像を指定
 
 original_width, original_height = image.size
