@@ -3,9 +3,9 @@ from glob import glob
 from PIL import Image
 import shutil
 
-input_folder = "C:/Users/ransu/Downloads/train/old3"
-output_folder_low = "data/train_low"
-output_folder_high = "data/train_high"
+input_folder = "C:/Users/ransu/Downloads/train/n02817516" #学習元画像のフォルダ（移動元）
+output_folder_low = "data/train_low" #低解像度用のフォルダ
+output_folder_high = "data/train_high"  #高解像度用のフォルダ
 
 os.makedirs(output_folder_high, exist_ok=True)
 os.makedirs(output_folder_low, exist_ok=True)
@@ -25,12 +25,9 @@ for image_path in image_files:
                 img_resized.save(save_path_low)
                 print(f"保存: {save_path_low}")
 
-                # 元画像を high に移動
                 save_path_high = os.path.join(output_folder_high, filename)
                 shutil.move(image_path, save_path_high)
                 print(f"移動: {save_path_high}")
-            # else:
-                # print(f"スキップ (サイズが小さいため): {image_path}")
 
     except Exception as e:
         print(f"Error {image_path}: {e}")

@@ -8,10 +8,11 @@ from torchvision.utils import save_image
 from upscaler import Upscaler
 
 # ハイパーパラメータ
-epochs = 4  # 学習回数
+epochs = 70  # 学習回数
 batch_size = 20  # バッチサイズ（GPUのメモリに依存）
-lr_g = 1.0e-5  # Generatorの学習率
-lr_d = 1.0e-7  # Discriminatorの学習率
+lr_g = 1.1e-5  # Generatorの学習率
+lr_d = 8.0e-7  # Discriminatorの学習率
+λ = 0.01  # 適切な値に調整
  
 # データセットの作成
 transform = PairedTransform()
@@ -65,7 +66,7 @@ for epoch in range(start_epoch, epochs + 1):
         # 本物と偽物の判定損失
         real_loss = criterion(real_output, torch.ones_like(real_output))
         fake_loss = criterion(fake_output, torch.zeros_like(fake_output))
-        d_loss = (real_loss + fake_loss) / 2
+        d_loss = real_loss + fake_loss
         d_loss.backward()
         optim_d.step()
 
@@ -76,7 +77,8 @@ for epoch in range(start_epoch, epochs + 1):
 
         # Generatorの出力をDiscriminatorに通して、損失を計算
         fake_output = discriminator(fake_hr)
-        g_loss = criterion(fake_output, torch.ones_like(fake_output))
+        l1_loss = torch.nn.L1Loss()(fake_hr, hr)
+        g_loss = criterion(fake_output, torch.ones_like(fake_output)) + λ * l1_loss
 
         g_loss.backward()
         optim_g.step()
@@ -87,24 +89,24 @@ for epoch in range(start_epoch, epochs + 1):
 
         # ログの表記
         if batch_idx % 2 == 0:
-            print(f"{epoch},{batch_idx + 1},{d_loss.item()},{g_loss.item()}")
+            print(f"{epoch},{batch_idx},{d_loss.item()/2},{g_loss.item()}")
 
-        # キャッシュ
+        # .pth保存
+        torch.save(generator.state_dict(), f"tmp_generator/generator_batch_{epoch}_{batch_idx}.pth")
+
+        # 画像生成プレビュー用
         if batch_idx % 2 == 0:
-            torch.save(generator.state_dict(), f"tmp_generator/generator_batch_{batch_idx}.pth")
-            upscaler.upscale(batch_idx)
+            upscaler.upscale(epoch, batch_idx)
 
     
-    # nエポックごとにモデルを保存(状況に応じてn>0を設定してください)
-    if epoch % 1 == 0:
-        torch.save({
-            "epoch": epoch,
-            "generator_state_dict": generator.state_dict(),
-            "discriminator_state_dict": discriminator.state_dict(),
-        }, f"checkpoint/checkpoint_epoch_{epoch}.pth")
-        torch.save({
-            "epoch": epoch,
-            "generator_state_dict": generator.state_dict(),
-            "discriminator_state_dict": discriminator.state_dict(),
-        }, "checkpoint/checkpoint.pth")
-        print(f"💾 チェックポイントを保存しました（Epoch {epoch}）")
+    torch.save({
+        "epoch": epoch,
+        "generator_state_dict": generator.state_dict(),
+        "discriminator_state_dict": discriminator.state_dict(),
+    }, f"checkpoint/checkpoint_epoch_{epoch}.pth")
+    torch.save({
+        "epoch": epoch,
+        "generator_state_dict": generator.state_dict(),
+        "discriminator_state_dict": discriminator.state_dict(),
+    }, "checkpoint/checkpoint.pth")
+    print(f"💾 チェックポイントを保存しました（Epoch {epoch}）")
