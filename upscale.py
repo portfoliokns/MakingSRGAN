@@ -11,11 +11,11 @@ def denormalize(tensor):
 
 # 学習済みモデルの設定
 generator = Generator().cpu()
-generator.load_state_dict(torch.load("tmp_generator/generator_batch_38_257.pth", weights_only=True))
+generator.load_state_dict(torch.load("generator/generator_batch_38_257.pth", weights_only=True))
 generator.eval()  # 評価モードに設定
 
 # 個別にアップスケールしたい画像を設定
-num = 3
+num = 1
 image = Image.open("w_test" + str(num) +".png")
 
 original_width, original_height = image.size

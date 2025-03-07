@@ -14,6 +14,7 @@ class Generator(nn.Module):
         # アップサンプリング層
         self.upconv1 = nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1, output_padding=0)
 
+        # 活性化関数
         self.activation = nn.Tanh()
     
     def make_block(self, in_channels, out_channels, kernel_size):
@@ -29,10 +30,7 @@ class Generator(nn.Module):
         x = self.block2(x)
         x = self.block3(x)
         x = self.block4(x)
-
-        # アップサンプリングを行う
-        x = self.upconv1(x)  # サイズが2倍になる
-
+        x = self.upconv1(x)
         x = self.activation(x)
         return x
 
@@ -44,19 +42,16 @@ class Discriminator(nn.Module):
         self.conv2 = nn.Conv2d(64, 128, 3, stride=2, padding=1)
         self.conv3 = nn.Conv2d(128, 256, 3, stride=2, padding=1)
         self.conv4 = nn.Conv2d(256, 512, 3, stride=2, padding=1)
-
-        # 入力画像のサイズに基づいてfc_in_featuresを計算
         self.fc_in_features = self._calculate_fc_in_features(img_size)
-
         self.fc = nn.Linear(self.fc_in_features, 1)
 
     def _calculate_fc_in_features(self, img_size):
         """
         畳み込み層を通過した後の画像サイズを計算し、fc層の入力特徴量の数を返す
+        画像が2倍ずつ縮小するので、画像サイズを4回2倍で割って最終的なサイズを得る
         """
-        # 画像が2倍ずつ縮小するので、画像サイズを4回2倍で割って最終的なサイズを得る
         size = img_size
-        for _ in range(4):  # conv4まで
+        for _ in range(4):
             size = size // 2
         return 512 * size * size
 
@@ -66,8 +61,6 @@ class Discriminator(nn.Module):
         x = F.leaky_relu(self.conv2(x), 0.2)
         x = F.leaky_relu(self.conv3(x), 0.2)
         x = F.leaky_relu(self.conv4(x), 0.2)
-
-        # Flatten: バッチサイズを保持して、フラットに変換
-        x = x.view(x.size(0), -1)  # x.size(0) はバッチサイズ
+        x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x

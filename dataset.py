@@ -11,11 +11,6 @@ class SuperResolutionDataset(Dataset):
     def __init__(self, low_res_dir, high_res_dir, transform=None):
         """
         低画質（LR）と高画質（HR）の画像をペアで読み込むデータセット
-
-        Args:
-            low_res_dir (str): 低画質画像のフォルダパス
-            high_res_dir (str): 高画質画像のフォルダパス
-            transform (callable, optional): 入力画像に適用する変換（反転など）
         """
         self.low_res_images = sorted(glob(os.path.join(low_res_dir, "*.*")))
         self.high_res_images = sorted(glob(os.path.join(high_res_dir, "*.*")))
@@ -28,7 +23,7 @@ class SuperResolutionDataset(Dataset):
             transforms.Resize((512, 512)),
         ])
 
-        self.transform = transform  # 引数で渡されたtransformを保存
+        self.transform = transform
 
     def __len__(self):
         return len(self.low_res_images)
