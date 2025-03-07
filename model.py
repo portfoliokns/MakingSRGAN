@@ -13,12 +13,14 @@ class Generator(nn.Module):
 
         # アップサンプリング層
         self.upconv1 = nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1, output_padding=0)
+
+        self.activation = nn.Tanh()
     
     def make_block(self, in_channels, out_channels, kernel_size):
         """ 畳み込み層の作成 """
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size, padding=kernel_size//2),
-            nn.ReLU(inplace=True)
+            nn.LeakyReLU(0.2, inplace=True)
         )
 
     def forward(self, x):
@@ -30,6 +32,8 @@ class Generator(nn.Module):
 
         # アップサンプリングを行う
         x = self.upconv1(x)  # サイズが2倍になる
+
+        x = self.activation(x)
         return x
 
 class Discriminator(nn.Module):

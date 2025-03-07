@@ -11,7 +11,7 @@ def denormalize(tensor):
 
 # 学習済みモデルの設定
 generator = Generator().cpu()
-generator.load_state_dict(torch.load("tmp_generator/generator_batch_61_120.pth", weights_only=True))
+generator.load_state_dict(torch.load("tmp_generator/generator_batch_38_257.pth", weights_only=True))
 generator.eval()  # 評価モードに設定
 
 # 個別にアップスケールしたい画像を設定
@@ -25,11 +25,10 @@ if image.mode == "RGBA":
 
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
 ])
 image = transform(image).unsqueeze(0).cpu()
 
-# 画像生成
 with torch.no_grad():
     fake_hr = generator(image)
 
@@ -38,5 +37,5 @@ fake_hr = fake_hr.squeeze(0).cpu()
 fake_hr = denormalize(fake_hr)
 fake_hr = torch.clamp(fake_hr, 0, 1)
 fake_hr = transforms.ToPILImage()(fake_hr)
-fake_hr = fake_hr.resize((original_width * 2, original_height * 2), Image.BICUBIC)
+fake_hr = fake_hr.resize((original_width * 2, original_height * 2), Image.LANCZOS)
 fake_hr.save("w_output" + str(num) +".jpg")

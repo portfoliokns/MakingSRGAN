@@ -5,14 +5,14 @@ from dataset import PairedTransform, SuperResolutionDataset
 from model import Generator, Discriminator
 import os
 from torchvision.utils import save_image
-from upscaler import Upscaler
+# from upscaler import Upscaler
 
 # ハイパーパラメータ
-epochs = 70  # 学習回数
-batch_size = 20  # バッチサイズ（GPUのメモリに依存）
-lr_g = 1.1e-5  # Generatorの学習率
-lr_d = 8.0e-7  # Discriminatorの学習率
-λ = 0.01  # 適切な値に調整
+epochs = 40  # 学習回数
+batch_size = 22  # バッチサイズ（GPUのメモリに依存）
+lr_g = 0.9e-4  # Generatorの学習率
+lr_d = 1.1e-6  # Discriminatorの学習率
+λ = 0.08  # 適切な値に調整
  
 # データセットの作成
 transform = PairedTransform()
@@ -34,7 +34,7 @@ criterion = torch.nn.BCEWithLogitsLoss()
 start_epoch = 1  # デフォルトは1から開始
 
 # アップスケーラー
-upscaler = Upscaler()
+# upscaler = Upscaler()
 
 # もしチェックポイントファイルが存在すれば、読み込む
 checkpoint_path = "checkpoint/checkpoint.pth"
@@ -94,9 +94,9 @@ for epoch in range(start_epoch, epochs + 1):
         # .pth保存
         torch.save(generator.state_dict(), f"tmp_generator/generator_batch_{epoch}_{batch_idx}.pth")
 
-        # 画像生成プレビュー用
-        if batch_idx % 2 == 0:
-            upscaler.upscale(epoch, batch_idx)
+        # # 画像生成プレビュー用
+        # if batch_idx % 2 == 0:
+        #     upscaler.upscale(epoch, batch_idx)
 
     
     torch.save({

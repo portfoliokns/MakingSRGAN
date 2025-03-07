@@ -3,7 +3,7 @@ from glob import glob
 from PIL import Image
 import shutil
 
-input_folder = "C:/Users/ransu/Downloads/train/n02817516" #学習元画像のフォルダ（移動元）
+input_folder = "C:/Users/ransu/Downloads/train/n04243546" #学習元画像のフォルダ（移動元）
 output_folder_low = "data/train_low" #低解像度用のフォルダ
 output_folder_high = "data/train_high"  #高解像度用のフォルダ
 
