@@ -11,7 +11,7 @@ def denormalize(tensor):
 
 # 学習済みモデルの設定
 generator = Generator().cpu()
-generator.load_state_dict(torch.load("generator/generator_batch_38_257.pth", weights_only=True))
+generator.load_state_dict(torch.load("generator/generator_batch_30_96.pth", weights_only=True))
 generator.eval()  # 評価モードに設定
 
 # 個別にアップスケールしたい画像を設定
@@ -37,5 +37,4 @@ fake_hr = fake_hr.squeeze(0).cpu()
 fake_hr = denormalize(fake_hr)
 fake_hr = torch.clamp(fake_hr, 0, 1)
 fake_hr = transforms.ToPILImage()(fake_hr)
-fake_hr = fake_hr.resize((original_width * 2, original_height * 2), Image.LANCZOS)
 fake_hr.save("w_output" + str(num) +".jpg")

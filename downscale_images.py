@@ -3,7 +3,7 @@ from glob import glob
 from PIL import Image
 import shutil
 
-input_folder = "C:/Users/ransu/Downloads/train/n04243546" #学習元画像のフォルダ（移動元）
+input_folder = "C:/Users/ransu/Documents/mac_share/学習用"
 output_folder_low = "data/train_low" #低解像度用のフォルダ
 output_folder_high = "data/train_high"  #高解像度用のフォルダ
 
@@ -16,7 +16,7 @@ for image_path in image_files:
     try:
         with Image.open(image_path) as img:
             width, height = img.size
-            if width >= 1024 and height >= 1024:
+            if width >= 1000 and height >= 1000:
                 new_size = (width // 2, height // 2)
                 img_resized = img.resize(new_size, Image.BICUBIC)
 

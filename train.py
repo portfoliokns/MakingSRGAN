@@ -7,11 +7,11 @@ import os
 from torchvision.utils import save_image
 
 # ハイパーパラメータ
-epochs = 40  # 学習回数
+epochs = 30  # 学習回数
 batch_size = 22  # バッチサイズ（GPUのメモリに依存）
-lr_g = 0.9e-4  # Generatorの学習率
-lr_d = 1.1e-6  # Discriminatorの学習率
-λ = 0.08  # L1損失
+lr_g = 0.3e-4  # Generatorの学習率
+lr_d = 0.3e-6  # Discriminatorの学習率
+λ = 0.14  # L1損失
  
 # データセットの作成
 transform = PairedTransform()
@@ -86,10 +86,11 @@ for epoch in range(start_epoch, epochs + 1):
 
         # ログの表記
         if batch_idx % 2 == 0:
-            print(f"{epoch},{batch_idx},{d_loss.item()/2},{g_loss.item()}")
+            print(f"{epoch},{batch_idx},{d_loss.item()/2},{g_loss.item()},{lr_d},{lr_g}")
 
         # .pthの保存
-        torch.save(generator.state_dict(), f"generator/generator_batch_{epoch}_{batch_idx}.pth")
+        if batch_idx % 4 == 0:
+            torch.save(generator.state_dict(), f"generator/generator_batch_{epoch}_{batch_idx}.pth")
     
     torch.save({
         "epoch": epoch,
